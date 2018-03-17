@@ -2,8 +2,11 @@ package com.yz.db.datasources;
 
 import org.reflections.Reflections;
 import org.reflections.scanners.MethodAnnotationsScanner;
+import org.reflections.scanners.SubTypesScanner;
+import org.reflections.scanners.TypeAnnotationsScanner;
 import org.reflections.util.ClasspathHelper;
 import org.reflections.util.ConfigurationBuilder;
+import org.reflections.util.FilterBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.aop.aspectj.AspectJExpressionPointcut;
@@ -75,11 +78,13 @@ public class DataSourceManager implements BeanFactoryPostProcessor {
                 beanDefinitionRegistry.registerBeanDefinition(beanName,advisor);
             }
         }
-
     }
+
     public Set<String> getconfigs() {
         Set<String> configs = new HashSet<>();
-        Reflections reflections = new Reflections(new ConfigurationBuilder().addUrls(ClasspathHelper.forPackage(pacakgePath)));
+
+        ConfigurationBuilder configurationBuilder = new ConfigurationBuilder().setUrls(ClasspathHelper.forPackage(pacakgePath)).setScanners(new SubTypesScanner(),new TypeAnnotationsScanner(), new MethodAnnotationsScanner()).filterInputsBy(new FilterBuilder().includePackage(pacakgePath));
+        Reflections reflections = new Reflections(configurationBuilder);
         //获取所有标记@DataSource的类
         Set<Class<?>> typesAnnotatedWith = reflections.getTypesAnnotatedWith(DataSource.class);
         Iterator<Class<?>> iterator = typesAnnotatedWith.iterator();
@@ -94,8 +99,7 @@ public class DataSourceManager implements BeanFactoryPostProcessor {
                 configs.add(expression);
             }
         }
-        reflections = new Reflections(new ConfigurationBuilder().setUrls(ClasspathHelper.forPackage(pacakgePath)).setScanners(new MethodAnnotationsScanner()));
-        //获取所有类中标记@DataSource的方法
+        //获取所有类方法标记@DataSource
         Set<Method> methodsAnnotatedWith = reflections.getMethodsAnnotatedWith(DataSource.class);
         Iterator<Method> it = methodsAnnotatedWith.iterator();
         while (it.hasNext()){
